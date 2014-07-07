@@ -20,6 +20,7 @@
                 bg: '#DEDEDE',
                 bounds: false,
                 height: '5px',
+                onupdate: function () {},
                 thumb: T.find('*:first'),
                 thumbBg: '#333',
                 thumbHeight: '5px',
@@ -53,14 +54,25 @@
             T.wmm = function (e) {
                 // Prevent the default dragging behaviour
                 e.preventDefault();
-                var npos = e.clientX - T.offsetX;
-                if (npos <= T.s.bounds.left) {
-                    T.s[thumb].css({left: T.s.bounds.left});
-                } else if (npos >= T.s.bounds.right) {
-                    T.s[thumb].css({left: T.s.bounds.right});
+                var npos = e.clientX - T.offsetX,
+                apos,
+                bl = T.s.bounds.left,
+                br = T.s.bounds.right;
+                if (npos <= bl) {
+                    // Gone too far to the left
+                    apos = bl;
+                } else if (npos >= br) {
+                    // Gone too far to the right
+                    apos = br;
                 } else {
-                    T.s[thumb].css({left: npos});
+                    apos = npos;
                 }
+                T.s[thumb].css({left: apos});
+                T.s.onupdate.call(T, {
+                    boundaries: T.s.bounds,
+                    percentage: apos / (br - bl),
+                    position: apos
+                });
             };
             T.mousedown(function (e) {
                 // Prevent the default dragging behaviour
