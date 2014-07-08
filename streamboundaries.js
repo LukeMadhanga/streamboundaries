@@ -10,7 +10,9 @@
     apply = 'apply',
     call = 'call',
     offset = 'offset',
-    bounds='bounds';
+    bounds = 'bounds',
+    css = 'css',
+    orientation = 'orientation';
     var methods = {
         init: function (opts) {
             var T = this;
@@ -40,53 +42,61 @@
             }, opts);
             T[offset + 'X'] = 0;
             T[offset + 'Y'] = 0;
-            T.rect = T[0].getBoundingClientRect();
-            
+            T['auto'+bounds] = !1;
             (function () {
                 // Self executing
                 var settings = T.s,
                 th = settings[thumb],
-                xscroll = settings.orientation === 'x',
+                xscroll = settings[orientation] === 'x',
                 dorotate =  xscroll && settings.autoRotate;
-                T.css({
+                T[css]({
                     width: settings[dorotate ? width : height], 
                     height: settings[dorotate ? height : width], 
                     background: settings.bg, 
                     position: 'relative'
                 });
-                th.css({
+                th[css]({
                     width: settings[thumb + (dorotate ? 'Width' : 'Height')], 
                     height: settings[thumb + (dorotate ? 'Height' : 'Width')], 
                     background: settings[thumb + 'Bg'],
                     position: 'absolute',
                     cursor: 'pointer'
                 });
-                var trackheight = T[height](),
+                reposition();
+            })();
+            
+            /**
+             * Reposition the thumb
+             */
+            function reposition () {
+                var th = T.s[thumb],
+                trackheight = T[height](),
                 thumbheight = th[height](),
                 trackwidth = T[width](),
                 thumbwidth = th[width]();
-                if (thumbheight > trackheight && xscroll) {
+                if (thumbheight > trackheight && T.s[orientation] === 'x') {
                     // The thumb is taller than the track
-                    th.css({
+                    th[css]({
                         top: -(thumbheight - trackheight) / 2
                     });
                 }
-                if (thumbwidth > trackwidth && T.s.orientation === 'y') {
+                if (thumbwidth > trackwidth && T.s[orientation] === 'y') {
                     // The thumb is wider than the track
-                    th.css({
+                    th[css]({
                         left: -(thumbwidth - trackwidth) / 2
                     });
                 }
-                if (settings[bounds] === !1) {
+                if (T.s[bounds] === !1 || T['auto'+bounds]) {
                     // If the user has not explicitly set the boundaries, work them out
-                    settings[bounds] = {
+                    T['auto'+bounds] = !0;
+                    T.s[bounds] = {
                         bottom: T[height]() - th[height](),
                         left: 0, 
                         top: 0,
                         right: T[width]() - th[width]()
                     };
                 }
-            })();
+            }
             
             /**
              * The mousemove handler in a seperate function so that it can be unbound later on
@@ -122,12 +132,12 @@
                 } else {
                     aypos = ypos;
                 }
-                settings[thumb].css({left: axpos, top: aypos});
+                settings[thumb][css]({left: axpos, top: aypos});
                 settings.onUpdate[call](T, {
-                    boundaries: T.s[bounds],
+                    bounds: T.s[bounds],
                     originalEvent: e,
-                    percentageX: axpos / (br - bl),
-                    percentageY: aypos / (bb - bt),
+                    px: axpos / (br - bl),
+                    py: aypos / (bb - bt),
                     x: axpos,
                     y: aypos
                 });
@@ -135,6 +145,8 @@
             T.mousedown(function (e) {
                 // Prevent the default dragging behaviour
                 e.preventDefault();
+                reposition();
+                T.rect = T[0].getBoundingClientRect();
                 var w = $(win),
                 off = getOffset(e, T.rect);
                 T[offset + 'X'] = off.x;
@@ -155,6 +167,7 @@
          * @param {object(plain)} newbounds An object in the form {left: int} or {right: int} or {left: int, right: int}
          */
         updateBounds: function (newbounds) {
+            T['auto'+bounds] = !1;
             this.s[bounds] = $.extend(newbounds, this.s[bounds]);
         }
     };
