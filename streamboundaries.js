@@ -12,8 +12,11 @@
     offset = 'offset',
     bounds = 'bounds',
     css = 'css',
-    orientation = 'orientation';
-    var methods = {
+    orientation = 'orientation',
+    sbid = 'data-streamboundariesid',
+    getBoundingClientRect = 'getBoundingClientRect',
+    cache = {},
+    methods = {
         init: function (opts) {
             var T = this;
             if (!T.length) {
@@ -27,24 +30,31 @@
                 });
                 return T;
             }
+            var prop = {},
+            ef = function () {};
             T.s = $.extend({
                 autoRotate: !0,
                 bg: '#DEDEDE',
                 bounds: !1,
                 height: '5px',
-                onUpdate: function () {},
+                onFinish: ef,
+                onUpdate: ef,
                 orientation: 'x',
                 thumb: T.find('*:first'),
                 thumbBg: '#333',
                 thumbHeight: '5px',
+                thumbIsLarger: !1,
                 thumbWidth: '10%',
                 width: '300px'
             }, opts);
             T[offset + 'X'] = 0;
             T[offset + 'Y'] = 0;
             T['auto'+bounds] = !1;
-            (function () {
-                // Self executing
+            T.c = ++count;
+            prop[sbid] = T.c;
+            T.attr(prop);
+            
+            T.render = function () {
                 var settings = T.s,
                 th = settings[thumb],
                 xscroll = settings[orientation] === 'x',
@@ -63,7 +73,8 @@
                     cursor: 'pointer'
                 });
                 reposition();
-            })();
+            };
+            T.render();            
             
             /**
              * Reposition the thumb
@@ -96,7 +107,7 @@
                         right: T[width]() - th[width]()
                     };
                 }
-            }
+            };
             
             /**
              * The mousemove handler in a seperate function so that it can be unbound later on
@@ -110,29 +121,47 @@
                 axpos = 0,
                 aypos = 0,
                 settings = T.s,
-                bb = settings[bounds].bottom,
-                bl = settings[bounds].left,
-                bt = settings[bounds].top,
-                br = settings[bounds].right;
-                if (xpos <= bl) {
-                    // Gone too far to the left
-                    axpos = bl;
-                } else if (xpos >= br) {
-                    // Gone too far to the right
-                    axpos = br;
-                } else {
+                orient = settings[orientation];
+                if (settings.thumbIsLarger) {
+                    // The thumb is larger than the track
                     axpos = xpos;
-                }
-                if (ypos <= bt) {
-                    // Gone too high
-                    aypos = bt;
-                } else if (ypos >= bb) {
-                    // Gone too low
-                    aypos = bb;
-                } else {
                     aypos = ypos;
+                    if (orient==='x'||orient==='2d') {
+                        settings[thumb][css]({left: axpos});
+                    }
+                    if (orient==='y'||orient==='2d') {
+                        settings[thumb][css]({top: aypos});
+                    }
+                } else {
+                    var bb = settings[bounds].bottom,
+                    bl = settings[bounds].left,
+                    bt = settings[bounds].top,
+                    br = settings[bounds].right;
+                    if (orient==='x'||orient==='2d') {
+                        if (xpos <= bl) {
+                            // Gone too far to the left
+                            axpos = bl;
+                        } else if (xpos >= br) {
+                            // Gone too far to the right
+                            axpos = br;
+                        } else {
+                            axpos = xpos;
+                        }
+                        settings[thumb][css]({left: axpos});
+                    }
+                    if (orient==='y'||orient==='2d') {
+                        if (ypos <= bt) {
+                            // Gone too high
+                            aypos = bt;
+                        } else if (ypos >= bb) {
+                            // Gone too low
+                            aypos = bb;
+                        } else {
+                            aypos = ypos;
+                        }
+                        settings[thumb][css]({top: aypos});
+                    }
                 }
-                settings[thumb][css]({left: axpos, top: aypos});
                 settings.onUpdate[call](T, {
                     bounds: T.s[bounds],
                     originalEvent: e,
@@ -146,7 +175,7 @@
                 // Prevent the default dragging behaviour
                 e.preventDefault();
                 reposition();
-                T.rect = T[0].getBoundingClientRect();
+                T.rect = T[0][getBoundingClientRect]();
                 var w = $(win),
                 off = getOffset(e, T.rect);
                 T[offset + 'X'] = off.x;
@@ -155,20 +184,58 @@
                 w.one('mouseup', function () {
                     // Only allow the mouseup event to fire once
                     w.unbind('mousemove', T.wmm);
+                    if (T.s.thumbIsLarger) {
+                        var tr = T[0][getBoundingClientRect](),
+                        thr = T.s[thumb][0][getBoundingClientRect](),
+                        settings = T.s,
+                        orient = settings[orientation],
+                        axpos= !1,
+                        aypos= !1;
+                        if (orient==='x'||orient==='2d') {
+                            if (thr.left >= tr.left) {
+                                // We have been pulled to the left edge of the container
+                                axpos = 0;
+                            } else if (thr.right <= tr.right) {
+                                // We have been pulled to the right edge of the container
+                                axpos = settings[width] - settings[thumb][width]();
+                            }
+                            if (axpos !== !1) {
+                                settings[thumb][css]({left: axpos});
+                            }
+                        }
+                        if (orient === 'y' || orient === '2d') {
+                            if (thr.top >= tr.top) {
+                                // We've been pulled to the top edge of the container
+                                aypos = 0;
+                            } else if (thr.bottom <= tr.bottom) {
+                                // We've been pulled to the bottom edge of the container
+                                aypos = settings[height] - settings[thumb][height]();
+                            }
+                            if (aypos !== !1) {
+                                settings[thumb][css]({top: aypos});
+                            }
+                        }
+                    }
+                    T.s.onUpdate[call](T, {
+                        bounds: T.s[bounds],
+                        originalEvent: e
+                    });
                 });
             });
-            T.c = count;
-            
-            count++;
+            cache[T.c] = T;
             return T;
         }, 
         /**
-         * Update the boundary for this scroller
-         * @param {object(plain)} newbounds An object in the form {left: int} or {right: int} or {left: int, right: int}
+         * Update the settings
+         * @param {object(plain)} newbounds An object in the form {option: value [,...]}
          */
-        updateBounds: function (newbounds) {
-            T['auto'+bounds] = !1;
-            this.s[bounds] = $.extend(newbounds, this.s[bounds]);
+        updateOpts: function (opts) {
+            var T = this;
+            if (opts.bounds) {
+                T['auto'+bounds] = !1;
+            }
+            T.s = $.extend($.extend({}, T.s), opts);
+            T.render();
         }
     };
     
@@ -187,8 +254,13 @@
         };
     }
     
+    function getThis(elem) {
+        var id = elem.attr(sbid);
+        return id ? cache[id] : elem;
+    }
+    
     $.fn.streamBoundaries = function  (opts) {
-        var T = $(this);
+        var T = getThis(this);
         if (methods[opts]) {
             // The first option passed is a method, therefore call this method
             return methods[opts][apply](T, Array.prototype.slice[call](arguments, 1));
@@ -197,7 +269,7 @@
             return methods['init'][apply](T, arguments);
         } else {
             // The user has passed us something dodgy, throw an error
-            $.error(['The method ', opts, 'does not exist'].join(''));
+            $.error(['The method ', opts, ' does not exist'].join(''));
         }
     };
     
