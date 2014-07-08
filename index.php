@@ -8,9 +8,7 @@ echo <<<HTML
         <script type='text/javascript'>
             $(function () {
                 $('#container').streamBoundaries({
-                    onUpdate: function (e) {console.log(e);},
-                    orientation: 'y',
-                    height: 2
+                    onUpdate: function (e) {console.log(e);}
                 });
             });
         </script>

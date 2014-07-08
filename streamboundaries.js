@@ -9,11 +9,17 @@
     height = 'height',
     apply = 'apply',
     call = 'call',
-    offset = 'offset';
+    offset = 'offset',
+    bounds='bounds';
     var methods = {
         init: function (opts) {
             var T = this;
+            if (!T.length) {
+                // There is no object, return
+                return T;
+            }
             if (T.length > 1) {
+                // The selector matched more than one object, apply this function each individually
                 T.each(function () {
                     $.fn.streamBoundaries[apply]($(this), arguments);
                 });
@@ -38,19 +44,20 @@
             
             (function () {
                 // Self executing
-                var th = T.s[thumb],
-                xscroll = T.s.orientation === 'x',
-                dorotate =  xscroll && T.s.autoRotate;
+                var settings = T.s,
+                th = settings[thumb],
+                xscroll = settings.orientation === 'x',
+                dorotate =  xscroll && settings.autoRotate;
                 T.css({
-                    width: T.s[dorotate ? width : height], 
-                    height: T.s[dorotate ? height : width], 
-                    background: T.s.bg, 
+                    width: settings[dorotate ? width : height], 
+                    height: settings[dorotate ? height : width], 
+                    background: settings.bg, 
                     position: 'relative'
                 });
                 th.css({
-                    width: T.s[thumb + (dorotate ? 'Width' : 'Height')], 
-                    height: T.s[thumb + (dorotate ? 'Height' : 'Width')], 
-                    background: T.s[thumb + 'Bg'],
+                    width: settings[thumb + (dorotate ? 'Width' : 'Height')], 
+                    height: settings[thumb + (dorotate ? 'Height' : 'Width')], 
+                    background: settings[thumb + 'Bg'],
                     position: 'absolute',
                     cursor: 'pointer'
                 });
@@ -60,19 +67,19 @@
                 thumbwidth = th[width]();
                 if (thumbheight > trackheight && xscroll) {
                     // The thumb is taller than the track
-                    T.s[thumb].css({
+                    th.css({
                         top: -(thumbheight - trackheight) / 2
                     });
                 }
                 if (thumbwidth > trackwidth && T.s.orientation === 'y') {
                     // The thumb is wider than the track
-                    T.s[thumb].css({
+                    th.css({
                         left: -(thumbwidth - trackwidth) / 2
                     });
                 }
-                if (T.s.bounds === !1) {
+                if (settings[bounds] === !1) {
                     // If the user has not explicitly set the boundaries, work them out
-                    T.s.bounds = {
+                    settings[bounds] = {
                         bottom: T[height]() - th[height](),
                         left: 0, 
                         top: 0,
@@ -92,10 +99,11 @@
                 ypos = e.clientY - T[offset + 'Y'],
                 axpos = 0,
                 aypos = 0,
-                bb = T.s.bounds.bottom,
-                bl = T.s.bounds.left,
-                bt = T.s.bounds.top,
-                br = T.s.bounds.right;
+                settings = T.s,
+                bb = settings[bounds].bottom,
+                bl = settings[bounds].left,
+                bt = settings[bounds].top,
+                br = settings[bounds].right;
                 if (xpos <= bl) {
                     // Gone too far to the left
                     axpos = bl;
@@ -114,9 +122,9 @@
                 } else {
                     aypos = ypos;
                 }
-                T.s[thumb].css({left: axpos, top: aypos});
-                T.s.onUpdate[call](T, {
-                    boundaries: T.s.bounds,
+                settings[thumb].css({left: axpos, top: aypos});
+                settings.onUpdate[call](T, {
+                    boundaries: T.s[bounds],
                     originalEvent: e,
                     percentageX: axpos / (br - bl),
                     percentageY: aypos / (bb - bt),
@@ -147,7 +155,7 @@
          * @param {object(plain)} newbounds An object in the form {left: int} or {right: int} or {left: int, right: int}
          */
         updateBounds: function (newbounds) {
-            this.s.bounds = $.extend(newbounds, this.s.bounds);
+            this.s[bounds] = $.extend(newbounds, this.s[bounds]);
         }
     };
     
