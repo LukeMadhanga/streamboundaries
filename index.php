@@ -7,7 +7,10 @@ echo <<<HTML
         <script type='text/javascript' src='streamboundaries.js'></script>
         <script type='text/javascript'>
             $(function () {
-                $('#container').streamBoundaries();
+                $('#container').streamBoundaries({
+                    onUpdate: function (e) {},
+                    height: 2
+                });
             });
         </script>
         <style>

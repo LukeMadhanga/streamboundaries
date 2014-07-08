@@ -20,7 +20,8 @@
                 bg: '#DEDEDE',
                 bounds: false,
                 height: '5px',
-                onupdate: function () {},
+                onUpdate: function () {},
+                orientation: 'x',
                 thumb: T.find('*:first'),
                 thumbBg: '#333',
                 thumbHeight: '5px',
@@ -32,8 +33,9 @@
             
             (function () {
                 // Self executing
+                var th = T.s[thumb];
                 T.css({width: T.s[width], height: T.s[height], background: T.s.bg, position: 'relative'});
-                T.s[thumb].css({
+                th.css({
                     width: T.s[thumb + 'Width'], 
                     height: T.s[thumb + 'Height'], 
                     background: T.s[thumb + 'Bg'],
@@ -41,14 +43,14 @@
                     cursor: 'pointer'
                 });
                 var trackheight = T[height](),
-                thumbheight = T.s[thumb][height]();
-                if (thumbheight > trackheight) {
-                    // The thumb is taller than the 
+                thumbheight = th[height]();
+                if (thumbheight > trackheight && T.s.orientation === 'x') {
+                    // The thumb is taller than the track, but we're supposed to be going LR
                     T.s[thumb].css({
                         top: -(thumbheight - trackheight) / 2
                     });
                 }
-                T.s.bounds = {left: 0, right: T[width]() - T.s[thumb][width]()};
+                T.s.bounds = {left: 0, right: T[width]() - th[width]()};
             })();
             
             T.wmm = function (e) {
@@ -68,10 +70,11 @@
                     apos = npos;
                 }
                 T.s[thumb].css({left: apos});
-                T.s.onupdate.call(T, {
+                T.s.onUpdate.call(T, {
                     boundaries: T.s.bounds,
+                    originalEvent: e,
                     percentage: apos / (br - bl),
-                    position: apos
+                    x: apos
                 });
             };
             T.mousedown(function (e) {
@@ -88,7 +91,6 @@
             });
             T.c = count;
             
-            console.log(T);
             count++;
             return T;
         }, 
@@ -101,10 +103,15 @@
         }
     };
     
+    /**
+     * Get the offset in a 
+     * @param {object(DOMEvent)} e
+     * @param {object(BoundingClientRect)} rect
+     * @returns {object(plain)} An object with the properties x and y
+     */
     function getOffset(e, rect) {
         var t = $(e.target),
         offset = t.offset();
-        console.log(offset, rect);
         return {
             x: e.pageX - offset.left + rect.left,
             y: e.pageY - offset.top + rect.top
