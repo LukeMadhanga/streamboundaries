@@ -1,5 +1,5 @@
-(function ($, win, count) {
-    
+(function($, win, count) {
+
     /**
      * A string to access objects with a property or method beginning with 'thumb'. This will allow it to be compressed better
      * @type String
@@ -15,9 +15,10 @@
     orientation = 'orientation',
     sbid = 'data-streamboundariesid',
     getBoundingClientRect = 'getBoundingClientRect',
+    isViewport = 'isViewport',
     cache = {},
     methods = {
-        init: function (opts) {
+        init: function(opts) {
             var T = this;
             if (!T.length) {
                 // There is no object, return
@@ -25,13 +26,13 @@
             }
             if (T.length > 1) {
                 // The selector matched more than one object, apply this function each individually
-                T.each(function () {
+                T.each(function() {
                     $.fn.streamBoundaries[apply]($(this), arguments);
                 });
                 return T;
             }
             var prop = {},
-            ef = function () {};
+            ef = function() {};
             T.s = $.extend({
                 autoRotate: !0,
                 bg: '#DEDEDE',
@@ -43,43 +44,61 @@
                 thumb: T.find('*:first'),
                 thumbBg: '#333',
                 thumbHeight: '5px',
-                thumbIsLarger: !1,
+                isViewport: !1,
                 thumbWidth: '10%',
                 width: '300px'
             }, opts);
             T[offset + 'X'] = 0;
             T[offset + 'Y'] = 0;
-            T['auto'+bounds] = !1;
+            T['auto' + bounds] = !1;
             T.c = ++count;
             prop[sbid] = T.c;
             T.attr(prop);
             
-            T.render = function () {
+            /**
+             * Render the thumb and track according to the parameters that are passed to it
+             * @param {float} x The new x position of the thumb
+             * @param {float} y The new y position of the thumb
+             */
+            T.render = function(x, y) {
                 var settings = T.s,
                 th = settings[thumb],
-                xscroll = settings[orientation] === 'x',
-                dorotate =  xscroll && settings.autoRotate;
-                T[css]({
-                    width: settings[dorotate ? width : height], 
-                    height: settings[dorotate ? height : width], 
-                    background: settings.bg, 
+                dorotate = settings[orientation] === 'y' && settings.autoRotate,
+                tcss = {
+                    width: settings[dorotate ? height : width],
+                    height: settings[dorotate ? width : height],
+                    background: settings.bg,
                     position: 'relative'
-                });
-                th[css]({
-                    width: settings[thumb + (dorotate ? 'Width' : 'Height')], 
-                    height: settings[thumb + (dorotate ? 'Height' : 'Width')], 
+                },
+                thcss = {
+                    width: settings[thumb + (dorotate ? 'Height' : 'Width')],
+                    height: settings[thumb + (dorotate ? 'Width' : 'Height')],
                     background: settings[thumb + 'Bg'],
                     position: 'absolute',
                     cursor: 'pointer'
-                });
+                };
+                if (x||x===0) {
+                    // The user has supplied a x value, move the thumb there
+                    thcss['left'] = x;
+                }
+                if (y||y===0) {
+                    // The user has supplied a y value, move the thumb there
+                    thcss['top'] = y;
+                }
+                if (T.s[isViewport]) {
+                    // Make the track overflow:hidden if the thumb is larger than the boundaries
+                    tcss['overflow'] = 'hidden';
+                }
+                T[css](tcss);
+                th[css](thcss);
                 reposition();
             };
-            T.render();            
-            
+            T.render();
+
             /**
              * Reposition the thumb
              */
-            function reposition () {
+            function reposition() {
                 var th = T.s[thumb],
                 trackheight = T[height](),
                 thumbheight = th[height](),
@@ -97,23 +116,59 @@
                         left: -(thumbwidth - trackwidth) / 2
                     });
                 }
-                if (T.s[bounds] === !1 || T['auto'+bounds]) {
+                if (T.s[bounds] === !1 || T['auto' + bounds]) {
                     // If the user has not explicitly set the boundaries, work them out
-                    T['auto'+bounds] = !0;
+                    T['auto' + bounds] = !0;
                     T.s[bounds] = {
                         bottom: T[height]() - th[height](),
-                        left: 0, 
+                        left: 0,
                         top: 0,
                         right: T[width]() - th[width]()
                     };
                 }
+            }
+
+            /**
+             * Reposition viewports
+             */
+            T.posLT = function() {
+                var tr = T[0][getBoundingClientRect](),
+                thr = T.s[thumb][0][getBoundingClientRect](),
+                settings = T.s,
+                orient = settings[orientation],
+                axpos = !1,
+                aypos = !1;
+                if (orient === 'x' || orient === '2d') {
+                    if (thr.left >= tr.left) {
+                        // We have been pulled to the left edge of the container
+                        axpos = 0;
+                    } else if (thr.right <= tr.right) {
+                        // We have been pulled to the right edge of the container
+                        axpos = settings[width] - settings[thumb][width]();
+                    }
+                    if (axpos !== !1) {
+                        settings[thumb][css]({left: axpos});
+                    }
+                }
+                if (orient === 'y' || orient === '2d') {
+                    if (thr.top >= tr.top) {
+                        // We've been pulled to the top edge of the container
+                        aypos = 0;
+                    } else if (thr.bottom <= tr.bottom) {
+                        // We've been pulled to the bottom edge of the container
+                        aypos = settings[height] - settings[thumb][height]();
+                    }
+                    if (aypos !== !1) {
+                        settings[thumb][css]({top: aypos});
+                    }
+                }
             };
-            
+
             /**
              * The mousemove handler in a seperate function so that it can be unbound later on
              * @param {object(DOMEvent)} e The jQuery event for window.mousemove
              */
-            T.wmm = function (e) {
+            T.wmm = function(e) {
                 // Prevent the default dragging behaviour
                 e.preventDefault();
                 var xpos = e.clientX - T[offset + 'X'],
@@ -122,14 +177,14 @@
                 aypos = 0,
                 settings = T.s,
                 orient = settings[orientation];
-                if (settings.thumbIsLarger) {
+                if (settings[isViewport]) {
                     // The thumb is larger than the track
                     axpos = xpos;
                     aypos = ypos;
-                    if (orient==='x'||orient==='2d') {
+                    if (orient === 'x' || orient === '2d') {
                         settings[thumb][css]({left: axpos});
                     }
-                    if (orient==='y'||orient==='2d') {
+                    if (orient === 'y' || orient === '2d') {
                         settings[thumb][css]({top: aypos});
                     }
                 } else {
@@ -137,7 +192,7 @@
                     bl = settings[bounds].left,
                     bt = settings[bounds].top,
                     br = settings[bounds].right;
-                    if (orient==='x'||orient==='2d') {
+                    if (orient === 'x' || orient === '2d') {
                         if (xpos <= bl) {
                             // Gone too far to the left
                             axpos = bl;
@@ -149,7 +204,7 @@
                         }
                         settings[thumb][css]({left: axpos});
                     }
-                    if (orient==='y'||orient==='2d') {
+                    if (orient === 'y' || orient === '2d') {
                         if (ypos <= bt) {
                             // Gone too high
                             aypos = bt;
@@ -171,74 +226,64 @@
                     y: aypos
                 });
             };
-            T.mousedown(function (e) {
+            T.mousedown(function(e) {
                 // Prevent the default dragging behaviour
                 e.preventDefault();
                 reposition();
                 T.rect = T[0][getBoundingClientRect]();
                 var w = $(win),
-                off = getOffset(e, T.rect);
+                        off = getOffset(e, T.rect);
                 T[offset + 'X'] = off.x;
                 T[offset + 'Y'] = off.y;
                 w.mousemove(T.wmm);
-                w.one('mouseup', function () {
+                w.one('mouseup', function(ev) {
                     // Only allow the mouseup event to fire once
                     w.unbind('mousemove', T.wmm);
-                    if (T.s.thumbIsLarger) {
-                        var tr = T[0][getBoundingClientRect](),
-                        thr = T.s[thumb][0][getBoundingClientRect](),
-                        settings = T.s,
-                        orient = settings[orientation],
-                        axpos= !1,
-                        aypos= !1;
-                        if (orient==='x'||orient==='2d') {
-                            if (thr.left >= tr.left) {
-                                // We have been pulled to the left edge of the container
-                                axpos = 0;
-                            } else if (thr.right <= tr.right) {
-                                // We have been pulled to the right edge of the container
-                                axpos = settings[width] - settings[thumb][width]();
-                            }
-                            if (axpos !== !1) {
-                                settings[thumb][css]({left: axpos});
-                            }
-                        }
-                        if (orient === 'y' || orient === '2d') {
-                            if (thr.top >= tr.top) {
-                                // We've been pulled to the top edge of the container
-                                aypos = 0;
-                            } else if (thr.bottom <= tr.bottom) {
-                                // We've been pulled to the bottom edge of the container
-                                aypos = settings[height] - settings[thumb][height]();
-                            }
-                            if (aypos !== !1) {
-                                settings[thumb][css]({top: aypos});
-                            }
-                        }
+                    if (T.s[isViewport]) {
+                        T.posLT();
                     }
-                    T.s.onUpdate[call](T, {
+                    T.s.onFinish[call](T, {
                         bounds: T.s[bounds],
-                        originalEvent: e
+                        originalEvent: ev
                     });
                 });
             });
             cache[T.c] = T;
             return T;
-        }, 
+        },
         /**
          * Update the settings
-         * @param {object(plain)} newbounds An object in the form {option: value [,...]}
+         * @param {object(plain)} opts An object in the form {option: value [,...]}
+         * @returns {object(jQuery)} The jQuery object that called this function
          */
-        updateOpts: function (opts) {
+        updateOpts: function(opts) {
             var T = this;
             if (opts.bounds) {
-                T['auto'+bounds] = !1;
+                T['auto' + bounds] = !1;
             }
             T.s = $.extend($.extend({}, T.s), opts);
             T.render();
+            return T;
+        },
+        /**
+         * Reposition the thumb and track
+         * @param {object(plain)} opts A plain object in the form {x: float(val), y: float(val)}, which will be used to explicitly 
+         *  set the x and y position of the thumb. Both are optional
+         * @returns {object(jQuery)} The jQuery object that called this function
+         */
+        reposition: function (opts) {
+            var T = this;
+            if (!opts) {
+                opts = {};
+            }
+            T.render(opts.x, opts.y);
+            if (T.s[isViewport]) {
+                T.posLT();
+            }
+            return T;
         }
     };
-    
+
     /**
      * Get the offset of the mouse click
      * @param {object(DOMEvent)} e The original mousedown event
@@ -253,24 +298,36 @@
             y: e.pageY - off.top + rect.top
         };
     }
-    
+
+    /**
+     * Get this object from the cache
+     * @param {object(jQuery)} elem The object to test
+     * @returns {object(jQuery)} Either the jQuery object from the cache, or elem if a cache entry does not exist
+     */
     function getThis(elem) {
         var id = elem.attr(sbid);
         return id ? cache[id] : elem;
     }
-    
-    $.fn.streamBoundaries = function  (opts) {
+
+    /**
+     * Create a thumb and track, and depending on what parameters are passed, scroll the thumb in the x or y axis, or even both. You
+     *  can also create a viewport where you scroll the thumb inside the viewport
+     * @syntax $(selector).streamBoundaries({[opt: val [,...]]}) <br/> $(selector).streamBoundaries(methodname [, {opt: value}])
+     * @param {string|object(plain)} methodOrOpts Either the name of the method to run, or the options for the main method
+     * @returns {object(jQuery)} The jQuery object that called this function
+     */
+    $.fn.streamBoundaries = function(methodOrOpts) {
         var T = getThis(this);
-        if (methods[opts]) {
+        if (methods[methodOrOpts]) {
             // The first option passed is a method, therefore call this method
-            return methods[opts][apply](T, Array.prototype.slice[call](arguments, 1));
-        } else if (Object.prototype.toString[call](opts) === '[object Object]' || !opts) {
+            return methods[methodOrOpts][apply](T, Array.prototype.slice[call](arguments, 1));
+        } else if (Object.prototype.toString[call](methodOrOpts) === '[object Object]' || !methodOrOpts) {
             // The default action is to call the init function
             return methods['init'][apply](T, arguments);
         } else {
             // The user has passed us something dodgy, throw an error
-            $.error(['The method ', opts, ' does not exist'].join(''));
+            $.error(['The method ', methodOrOpts, ' does not exist'].join(''));
         }
     };
-    
+
 })(jQuery, this, 0);
