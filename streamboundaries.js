@@ -36,15 +36,16 @@
             T.s = $.extend({
                 autoRotate: !0,
                 bg: '#DEDEDE',
+                centerThumb: !0,
                 bounds: !1,
                 height: '5px',
+                isViewport: !1,
                 onFinish: ef,
                 onUpdate: ef,
                 orientation: 'x',
                 thumb: T.find('*:first'),
                 thumbBg: '#333',
                 thumbHeight: '5px',
-                isViewport: !1,
                 thumbWidth: '10%',
                 width: '300px'
             }, opts);
@@ -132,22 +133,26 @@
              * Reposition viewports
              */
             T.posLT = function() {
-                var tr = T[0][getBoundingClientRect](),
-                thr = T.s[thumb][0][getBoundingClientRect](),
-                settings = T.s,
+                var settings = T.s,
+                center = settings.centerThumb,
+                th = settings[thumb],
+                tr = T[0][getBoundingClientRect](),
+                thr = th[0][getBoundingClientRect](),
                 orient = settings[orientation],
                 axpos = !1,
-                aypos = !1;
+                aypos = !1,
+                centl = (settings[width] - th[width]()) / 2,
+                centt = (settings[height] - th[height]()) / 2;
                 if (orient === 'x' || orient === '2d') {
                     if (thr.left >= tr.left) {
                         // We have been pulled to the left edge of the container
                         axpos = 0;
                     } else if (thr.right <= tr.right) {
                         // We have been pulled to the right edge of the container
-                        axpos = settings[width] - settings[thumb][width]();
+                        axpos = settings[width] - th[width]();
                     }
                     if (axpos !== !1) {
-                        settings[thumb][css]({left: axpos});
+                        th[css]({left: center && centl > 0 ? centl : axpos});
                     }
                 }
                 if (orient === 'y' || orient === '2d') {
@@ -156,10 +161,10 @@
                         aypos = 0;
                     } else if (thr.bottom <= tr.bottom) {
                         // We've been pulled to the bottom edge of the container
-                        aypos = settings[height] - settings[thumb][height]();
+                        aypos = settings[height] - th[height]();
                     }
                     if (aypos !== !1) {
-                        settings[thumb][css]({top: aypos});
+                        th[css]({top: center && centt > 0 ? centt : aypos});
                     }
                 }
             };
