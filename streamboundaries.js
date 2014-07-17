@@ -103,6 +103,22 @@
                 T[css](tcss);
                 th[css](thcss);
                 reposition();
+                var tr = th[0][getBoundingClientRect](),
+                r = T[0][getBoundingClientRect](),
+                ax = tr.left - r.left,
+                ay = tr.top - r.top;
+                T.positionData = {
+                    bounds: T.s[bounds],
+                    jqueryEvent: null,
+                    originalEvent: null,
+                    px: ax / (settings[bounds].right - settings[bounds].left),
+                    py: ay / (settings[bounds].bottom - settings[bounds].top),
+                    type: null,
+                    x: ax,
+                    x2: ay + tr.width,
+                    y: ay,
+                    y2: ax + tr.height
+                };
             };
             T.render();
 
@@ -197,10 +213,10 @@
                 bl = settings[bounds].left,
                 bt = settings[bounds].top,
                 br = settings[bounds].right,
-                type = 'scrollbar';
+                lastMove = 'normal';
                 if (settings[isViewport]) {
                     // We are moving the thumb inside of the track
-                    type = 'viewport';
+                    lastMove = 'viewport';
                     axpos = xpos;
                     aypos = ypos;
                     if (orient === 'x' || orient === '2d') {
@@ -211,7 +227,7 @@
                     }
                 } else if (T.isresize) {
                     // This is a resize of the thumb
-                    type = 'resize';
+                    lastMove = 'resize';
                     var tr = T.thumbRect,
                     r = T.rect;
                     axpos = tr.right - r.left;
@@ -267,18 +283,19 @@
                 isr = T.isresize,
                 ax = isr ? T.thumbRect.left - T.rect.left : axpos,
                 ay = isr ? T.thumbRect.top - T.rect.top : aypos;
-                settings.onUpdate[call](T, {
+                T.positionData = {
                     bounds: T.s[bounds],
                     jqueryEvent: e,
                     originalEvent: e.originalEvent,
                     px: ax / (br - bl),
                     py: ay / (bb - bt),
-                    type: type,
+                    lastMove: lastMove,
                     x: ax,
                     x2: ay + thw,
                     y: ay,
                     y2: ax + thh
-                });
+                };
+                settings.onUpdate[call](T, T.positionData);
             };
             T.mousedown(function(e) {
                 // Prevent the default dragging behaviour
@@ -344,6 +361,13 @@
                 T.posLT();
             }
             return T;
+        },
+        /**
+         * Get the position data of the thumb
+         * @returns {object(plain)} The object that descibes the position of the thumb
+         */
+        getPositionData: function () {
+            return this.positionData;
         }
     };
 
