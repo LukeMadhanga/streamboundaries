@@ -278,8 +278,7 @@
                     }
                 }
                 
-                var thw = th.width(), 
-                thh = th.height(),
+                var nr = th[0][getBoundingClientRect](),
                 isr = T.isresize,
                 ax = isr ? T.thumbRect.left - T.rect.left : axpos,
                 ay = isr ? T.thumbRect.top - T.rect.top : aypos;
@@ -291,9 +290,9 @@
                     py: ay / (bb - bt),
                     lastMove: lastMove,
                     x: ax,
-                    x2: ay + thw,
+                    x2: ay + nr.width,
                     y: ay,
-                    y2: ax + thh
+                    y2: ax + nr.height
                 };
                 settings.onUpdate[call](T, T.positionData);
             };
@@ -304,7 +303,7 @@
                 T.thumbRect = T.s[thumb][0][getBoundingClientRect]();
                 T.isresize = e.target.id === 'sb_thumbres';
                 reposition();
-                T.startDim = {width: T.s[thumb].width(), height: T.s[thumb].height()};
+                T.startDim = {width: T.thumbRect.width, height: T.thumbRect.height};
                 var w = $(win);
                 if (T.isresize) {
                     T[offset+'X'] = e.clientX;
@@ -324,7 +323,8 @@
                     T.isresize = !1;
                     T.s.onFinish[call](T, {
                         bounds: T.s[bounds],
-                        originalEvent: ev
+                        jQueryEvent: ev,
+                        originalEvent: ev.originalEvent
                     });
                 });
             });
