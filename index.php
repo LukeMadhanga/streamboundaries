@@ -8,7 +8,12 @@ echo <<<HTML
         <script type='text/javascript'>
             $(function () {
                 $('#container').streamBoundaries({
-                    onUpdate: function (e) {console.log(e);}
+                    width: 200,
+                    height: 200,
+                    thumbWidth: 20,
+                    thumbHeight: 20,
+                    orientation: '2d',
+                    resizable: !0
                 });
             });
         </script>
