@@ -85,8 +85,8 @@
                 };
                 if (settings.resizable && !$('#sb_thumbres', T).length) {
                     // Only create the resize thumb if we're allowed to resize, and if we haven't already created one
-                    th.append('<div id="sb_thumbres" style="width:5px;height:5px;background:#555;cursor:se-resize;' + 
-                                                                                    'right:0;bottom:0;position:absolute;"></div>');
+                    th.append('<div id="sb_thumbres" style="width:30%;height:30%;background:#000;cursor:se-resize;' + 
+                                                    'max-width:30px;max-height:30px;right:0;bottom:0;position:absolute;"></div>');
                 }
                 if (x||x===0) {
                     // The user has supplied a x value, move the thumb there
@@ -197,10 +197,10 @@
                 bl = settings[bounds].left,
                 bt = settings[bounds].top,
                 br = settings[bounds].right,
-                type = 'Normal';
+                type = 'scrollbar';
                 if (settings[isViewport]) {
                     // We are moving the thumb inside of the track
-                    type = 'Viewport';
+                    type = 'viewport';
                     axpos = xpos;
                     aypos = ypos;
                     if (orient === 'x' || orient === '2d') {
@@ -211,22 +211,24 @@
                     }
                 } else if (T.isresize) {
                     // This is a resize of the thumb
-                    type = 'Resize';
-                    axpos = xpos;
-                    aypos = ypos;
+                    type = 'resize';
+                    var tr = T.thumbRect,
+                    r = T.rect;
+                    axpos = tr.right - r.left;
+                    aypos = tr.bottom - r.top;
                     if (orient === 'x' || orient === '2d') {
-                        var nw = T.startDim.width + (axpos - T.startDim.width);
-                        if (e.clientX > T.rect.right) {
-                            nw = nw - (e.clientX - T.rect.right);
+                        var nw = (axpos + xpos) - (tr.left - r.left);
+                        if (nw + tr.left >= r.right) {
+                            nw = r.width - (tr.left - r.left);
                         } else if (nw <= parseFloat(settings.minResizeWidth)) {
                             nw = settings.minResizeWidth;
                         }
                         th[css]({width: nw});
                     }
                     if (orient === 'y' || orient === '2d') {
-                        var nh = T.startDim.height + (aypos - T.startDim.height);
-                        if (e.clientY >= T.rect.bottom) {
-                            nh = nh - (e.clientY - T.rect.bottom);
+                        var nh = (aypos + ypos) - (tr.top - r.top);
+                        if (nh + tr.top >= r.bottom) {
+                            nh = r.height - (tr.top - r.top);
                         } else if (nh <= parseFloat(settings.minResizeHeight)) {
                             nh = settings.minResizeHeight;
                         }
@@ -286,10 +288,15 @@
                 T.isresize = e.target.id === 'sb_thumbres';
                 reposition();
                 T.startDim = {width: T.s[thumb].width(), height: T.s[thumb].height()};
-                var w = $(win),
-                off = getOffset(e, T.rect);
-                T[offset + 'X'] = off.x;
-                T[offset + 'Y'] = off.y;
+                var w = $(win);
+                if (T.isresize) {
+                    T[offset+'X'] = e.clientX;
+                    T[offset+'Y'] = e.clientY;
+                } else {
+                    var off = getOffset(e, T.rect);
+                    T[offset + 'X'] = off.x;
+                    T[offset + 'Y'] = off.y;
+                }
                 w.mousemove(T.wmm);
                 w.one('mouseup', function(ev) {
                     // Only allow the mouseup event to fire once
