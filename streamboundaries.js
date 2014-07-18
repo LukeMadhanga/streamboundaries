@@ -34,9 +34,11 @@
             var prop = {},
             ef = function() {};
             T.s = $.extend({
+                aspectRatio: false,
                 autoRotate: !0,
                 bg: '#DEDEDE',
                 centerThumb: !0,
+                crosshair: !0,
                 bounds: !1,
                 height: '5px',
                 isViewport: !1,
@@ -86,7 +88,12 @@
                 if (settings.resizable && !$('#sb_thumbres', T).length) {
                     // Only create the resize thumb if we're allowed to resize, and if we haven't already created one
                     th.append('<div id="sb_thumbres" style="width:30%;height:30%;background:#000;cursor:se-resize;' + 
-                                                    'max-width:30px;max-height:30px;right:0;bottom:0;position:absolute;"></div>');
+                                    'border-left:solid 2px #B3B37A;border-top:solid 2px #B3B37A;max-width:30px;' + 
+                                    'max-height:30px;right:0;bottom:0;position:absolute;"></div>');
+                }
+                if (settings.crosshair && ! $('#sb_cross', T).length) {
+                    th.append('<div id="sb_cross" style="font-size: 20px;position: absolute;top: 50%;left: 50%;width: 20px;' + 
+                                'height: 20px;overflow: hidden;margin: -10px 0 0 -10px;text-align: center; line-height: 20px;">+</div>');
                 }
                 if (x||x===0) {
                     // The user has supplied a x value, move the thumb there
@@ -208,6 +215,9 @@
                 aypos = 0,
                 settings = T.s,
                 orient = settings[orientation],
+                twoD = orient === '2d',
+                orientY = orient === 'y',
+                orientX = orient === 'x',
                 th = settings[thumb],
                 bb = settings[bounds].bottom,
                 bl = settings[bounds].left,
@@ -219,30 +229,40 @@
                     lastMove = 'viewport';
                     axpos = xpos;
                     aypos = ypos;
-                    if (orient === 'x' || orient === '2d') {
+                    if (orientX || twoD) {
                         th[css]({left: axpos});
                     }
-                    if (orient === 'y' || orient === '2d') {
+                    if (orientY || twoD) {
                         th[css]({top: aypos});
                     }
                 } else if (T.isresize) {
                     // This is a resize of the thumb
                     lastMove = 'resize';
                     var tr = T.thumbRect,
-                    r = T.rect;
+                    r = T.rect,
+                    ar = settings.aspectRatio || tr.width / tr.height;
                     axpos = tr.right - r.left;
                     aypos = tr.bottom - r.top;
-                    if (orient === 'x' || orient === '2d') {
+                    if (orientX || twoD) {
                         var nw = (axpos + xpos) - (tr.left - r.left);
                         if (nw + tr.left >= r.right) {
                             nw = r.width - (tr.left - r.left);
                         } else if (nw <= parseFloat(settings.minResizeWidth)) {
                             nw = settings.minResizeWidth;
                         }
+                        if (e.shiftKey && twoD) {
+                            if (nw / ar + (tr.top - r.top) > r.height) {
+                                // If by doing an aspect ratio scale we become taller than the bounds, reset our width
+                                nw = (r.height - (tr.top - r.top)) * ar;
+                            }
+                        }
                         th[css]({width: nw});
                     }
-                    if (orient === 'y' || orient === '2d') {
+                    if (orientY || twoD) {
                         var nh = (aypos + ypos) - (tr.top - r.top);
+                        if (e.shiftKey && twoD) {
+                            nh = nw / ar;
+                        }
                         if (nh + tr.top >= r.bottom) {
                             nh = r.height - (tr.top - r.top);
                         } else if (nh <= parseFloat(settings.minResizeHeight)) {
@@ -252,7 +272,7 @@
                     }
                 } else {
                     // We're doing a normal move
-                    if (orient === 'x' || orient === '2d') {
+                    if (orientX || twoD) {
                         if (xpos <= bl) {
                             // Gone too far to the left
                             axpos = bl;
@@ -264,7 +284,7 @@
                         }
                         th[css]({left: axpos});
                     }
-                    if (orient === 'y' || orient === '2d') {
+                    if (orientY || twoD) {
                         if (ypos <= bt) {
                             // Gone too high
                             aypos = bt;
@@ -289,6 +309,7 @@
                     px: ax / (br - bl),
                     py: ay / (bb - bt),
                     lastMove: lastMove,
+                    thumbRatio: nr.width / nr.height,
                     x: ax,
                     x2: ax + nr.width,
                     y: ay,
