@@ -290,9 +290,9 @@
                     py: ay / (bb - bt),
                     lastMove: lastMove,
                     x: ax,
-                    x2: ay + nr.width,
+                    x2: ax + nr.width,
                     y: ay,
-                    y2: ax + nr.height
+                    y2: ay + nr.height
                 };
                 settings.onUpdate[call](T, T.positionData);
             };
