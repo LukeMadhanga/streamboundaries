@@ -62,8 +62,6 @@
             T.render = function(x, y) {
                 var settings = T.s,
                 th = settings.thumb,
-                tr = th[0].getBoundingClientRect(),
-                r = T[0].getBoundingClientRect(),
                 dorotate = settings.orientation === 'y' && settings.autoRotate,
                 tcss = {
                     width: settings[dorotate ? height : width],
@@ -121,24 +119,27 @@
                 }
                 T.css(tcss);
                 th.css(thcss);
+                var tr = th[0].getBoundingClientRect(),
+                r = T[0].getBoundingClientRect();
                 reposition(r, tr);
                 var ax = tr.left - r.left,
                 ay = tr.top - r.top;
                 T.positionData = {
-                    bounds: T.s.bounds,
+                    bounds: settings.bounds,
                     jqueryEvent: null,
                     originalEvent: null,
                     px: ax / (settings.bounds.right - settings.bounds.left),
                     py: ay / (settings.bounds.bottom - settings.bounds.top),
-                    thumbRation: tr.width / tr.height,
+                    thumbRatio: tr.width / tr.height,
                     trackHeight: r.height,
                     trackWidth: r.width,
                     type: null,
                     x: ax,
-                    x2: ay + tr.width,
+                    x2: ax + tr.width,
                     y: ay,
-                    y2: ax + tr.height
+                    y2: ay + tr.height
                 };
+                console.log(T.positionData);
             };
             T.render();
 
