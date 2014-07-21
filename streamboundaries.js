@@ -77,7 +77,7 @@
                     'box-sizing': 'border-box',
                     cursor: 'pointer'
                 };
-                if (settings.resizable && !$('#sb_thumbres', T).length) {
+                if (settings.resizable && !$('.sb_thumbres', T).length) {
                     // Only create the resize thumb if we're allowed to resize, and if we haven't already created one
                     var html = ('<style>.sb_thumbres {max-width:30px;max-height:30px;position:absolute;width:20%;' + 
                                     'height:20%;}</style>') + (
@@ -103,7 +103,7 @@
                 if (settings.crosshair && ! $('#sb_cross', T).length) {
                     th.append('<div id="sb_cross" style="font-size: 20px;position: absolute;top: 50%;left: 50%;width: 20px;' + 
                                 'height: 20px;overflow: hidden;margin: -10px 0 0 -10px;text-align: center; line-height: 20px;' + 
-                                'border-radius: 20px;background: #FFF;">+</div>');
+                                'border-radius: 20px;background: #FFF;opacity: 0.5;">+</div>');
                 }
                 if (x||x===0) {
                     // The user has supplied a x value, move the thumb there
