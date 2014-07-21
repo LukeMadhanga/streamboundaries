@@ -81,9 +81,26 @@
                 };
                 if (settings.resizable && !$('#sb_thumbres', T).length) {
                     // Only create the resize thumb if we're allowed to resize, and if we haven't already created one
-                    th.append('<div id="sb_thumbres" style="width:30%;height:30%;background:#000;cursor:se-resize;' + 
-                                    'border-left:solid 2px #B3B37A;border-top:solid 2px #B3B37A;max-width:30px;' + 
-                                    'max-height:30px;right:0;bottom:0;position:absolute;"></div>');
+                    var html = ('<style>.sb_thumbres {max-width:30px;max-height:30px;position:absolute;width:20%;' + 
+                                    'height:20%;}</style>') + (
+                                '<div id="sbtT" class="sb_thumbres" style="cursor:nw-resize;' + 
+                                    'border-left:solid 2px #000;border-top:solid 2px #000;left:0;top:0;"></div>') + (
+                                '<div id="sbtTM" class="sb_thumbres" style="cursor:n-resize;' + 
+                                    'border-top:solid 2px #000;left:50%;top:0;margin-left: -15px;"></div>') + (
+                                '<div id="sbtR" class="sb_thumbres" style="cursor:ne-resize;' + 
+                                    'border-right:solid 2px #000;border-top:solid 2px #000;right:0;top:0;"></div>') + (
+                                '<div id="sbtRM" class="sb_thumbres" style="cursor:e-resize;' + 
+                                    'border-right:solid 2px #000;right:0;top:50%;margin-top: -15px;"></div>') + (
+                                '<div id="sbtB" class="sb_thumbres" style="width:20%;height:20%;cursor:se-resize;' + 
+                                    'border-right:solid 2px #000;border-bottom:solid 2px #000;max-width:30px;' + 
+                                    'max-height:30px;right:0;bottom:0;"></div>')+ (
+                                '<div id="sbtBM" class="sb_thumbres" style="cursor:s-resize;' + 
+                                    'border-bottom:solid 2px #000;left:50%;bottom:0;margin-left: -15px;"></div>') + (
+                                '<div id="sbtL" class="sb_thumbres" style="cursor:sw-resize;' + 
+                                    'border-left:solid 2px #000;border-bottom:solid 2px #000;left:0;bottom:0;"></div>') + (
+                                '<div id="sbtLM" class="sb_thumbres" style="cursor:w-resize;' + 
+                                    'border-left:solid 2px #000;left:0;top:50%;margin-top: -15px;"></div>');
+                    th.append(html);
                 }
                 if (settings.crosshair && ! $('#sb_cross', T).length) {
                     th.append('<div id="sb_cross" style="font-size: 20px;position: absolute;top: 50%;left: 50%;width: 20px;' + 
@@ -242,12 +259,40 @@
                     ar = settings.aspectRatio || tr.width / tr.height;
                     axpos = tr.right - r.left;
                     aypos = tr.bottom - r.top;
+                    if (T.curTarget.id === 'sbtRM' || T.curTarget.id === 'sbtLM') {
+                        // Lock to left/right resize
+                        orientX = !0;
+                        orientY = twoD = !1;
+                    }
+                    if (T.curTarget.id === 'sbtTM' || T.curTarget.id === 'sbtBM') {
+                        // Lock to up/down resize
+                        orientY = !0;
+                        orientX = twoD = !1;
+                    }
                     if (orientX || twoD) {
-                        var nw = (axpos + xpos) - (tr.left - r.left);
-                        if (nw + tr.left >= r.right) {
-                            nw = r.width - (tr.left - r.left);
-                        } else if (nw <= parseFloat(settings.minResizeWidth)) {
-                            nw = settings.minResizeWidth;
+                        var nw = (axpos + xpos) - (tr.left - r.left),
+                        xcss = {};
+                        if (T.curTarget.id === 'sbtLM' || T.curTarget.id === 'sbtL' || T.curTarget.id === 'sbtT') {
+                            // If we're on the left hand side
+                            var sx = tr.left - r.left,
+                            nl = sx + (nw - tr.width);
+                            axpos = xcss.left = nl; 
+                            xcss.right = tr.right;
+                            nw = tr.width - (nw - tr.width);
+                            if (nl <= settings.bounds.left) {
+                                // We've gone too far to the left
+                                axpos = xcss.left = settings.bounds.left;
+                                nw = sx + tr.width;
+                            } else if (nw <= parseFloat(settings.minResizeWidth)) {
+                                axpos = xcss.left = tr.right - settings.minResizeWidth;
+                                nw = settings.minResizeWidth;
+                            }
+                        } else {
+                            if (nw + tr.left >= r.right) {
+                                nw = r.width - (tr.left - r.left);
+                            } else if (nw <= parseFloat(settings.minResizeWidth)) {
+                                nw = settings.minResizeWidth;
+                            }
                         }
                         if (e.shiftKey && twoD) {
                             if (nw / ar + (tr.top - r.top) > r.height) {
@@ -255,19 +300,39 @@
                                 nw = (r.height - (tr.top - r.top)) * ar;
                             }
                         }
-                        th.css({width: nw});
+                        xcss.width = nw;
+                        th.css(xcss);
                     }
                     if (orientY || twoD) {
-                        var nh = (aypos + ypos) - (tr.top - r.top);
+                        var nh = (aypos + ypos) - (tr.top - r.top),
+                        ycss = {};
                         if (e.shiftKey && twoD) {
                             nh = nw / ar;
                         }
-                        if (nh + tr.top >= r.bottom) {
-                            nh = r.height - (tr.top - r.top);
-                        } else if (nh <= parseFloat(settings.minResizeHeight)) {
-                            nh = settings.minResizeHeight;
+                        if (T.curTarget.id === 'sbtTM' || T.curTarget.id === 'sbtT' || T.curTarget.id === 'sbtR') {
+                            // If we're on the left hand side
+                            var sy = tr.top - r.top,
+                            nt = sy + (nh - tr.height);
+                            aypos = ycss.top = nt; 
+                            ycss.bottom = tr.bottom;
+                            nh = tr.height - (nh - tr.height);
+                            if (nt <= settings.bounds.top) {
+                                // We've gone too far to the left
+                                aypos = ycss.top = settings.bounds.top;
+                                nh = sy + tr.height;
+                            } else if (nh <= parseFloat(settings.minResizeHeight)) {
+                                aypos = ycss.top = tr.bottom - settings.minResizeHeight;
+                                nh = settings.minResizeHeight;
+                            }
+                        } else {
+                            if (nh + tr.top >= r.bottom) {
+                                nh = r.height - (tr.top - r.top);
+                            } else if (nh <= parseFloat(settings.minResizeHeight)) {
+                                nh = settings.minResizeHeight;
+                            }
                         }
-                        th.css({height: nh});
+                        ycss.height = nh;
+                        th.css(ycss);
                     }
                 } else {
                     // We're doing a normal move
@@ -300,8 +365,8 @@
                 var nr = th[0].getBoundingClientRect(),
                 isr = T.isresize,
                 r = T.rect,
-                ax = isr ? T.thumbRect.left - r.left : axpos,
-                ay = isr ? T.thumbRect.top - r.top : aypos;
+                ax = isr ? nr.left - r.left : axpos,
+                ay = isr ? nr.top - r.top : aypos;
                 T.positionData = {
                     bounds: T.s.bounds,
                     jqueryEvent: e,
@@ -324,11 +389,12 @@
                 e.preventDefault();
                 T.rect = T[0].getBoundingClientRect();
                 T.thumbRect = T.s.thumb[0].getBoundingClientRect();
-                T.isresize = e.target.id === 'sb_thumbres';
+                T.isresize = $(e.target).hasClass('sb_thumbres');
                 reposition(T.rect, T.thumbRect);
                 T.startDim = {width: T.thumbRect.width, height: T.thumbRect.height};
                 var w = $(win);
                 if (T.isresize) {
+                    T.curTarget = e.target;
                     T.offsetX = e.clientX;
                     T.offsetY = e.clientY;
                 } else {
