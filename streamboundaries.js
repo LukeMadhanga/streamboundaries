@@ -44,7 +44,10 @@
                 thumbHeight: '5px',
                 thumbWidth: '10%',
                 resizable: !1,
-                width: '300px'
+                round: !0,
+                width: '300px',
+                x: false,
+                y: false
             }, opts);
             T.offsetX = 0;
             T.offsetY = 0;
@@ -105,13 +108,13 @@
                                 'height: 20px;overflow: hidden;margin: -10px 0 0 -10px;text-align: center; line-height: 20px;' + 
                                 'border-radius: 20px;background: #FFF;opacity: 0.5;">+</div>');
                 }
-                if (x||x===0) {
+                if (x||x===0||settings.x||settings.x===0) {
                     // The user has supplied a x value, move the thumb there
-                    thcss['left'] = x;
+                    thcss['left'] = x || settings.x;
                 }
-                if (y||y===0) {
+                if (y||y===0||settings.y||settings.y===0) {
                     // The user has supplied a y value, move the thumb there
-                    thcss['top'] = y;
+                    thcss['top'] = y||settings.y;
                 }
                 if (T.s.isViewport) {
                     // Make the track overflow:hidden if the thumb is larger than the boundaries
@@ -139,7 +142,6 @@
                     y: ay,
                     y2: ay + tr.height
                 };
-                console.log(T.positionData);
             };
             T.render();
 
@@ -150,10 +152,10 @@
              */
             function reposition(trackRect, thumbRect) {
                 var th = T.s.thumb,
-                trackheight = trackRect.height,
-                thumbheight = thumbRect.height,
-                trackwidth = trackRect.width,
-                thumbwidth = thumbRect.width;
+                trackheight = Math.round(trackRect.height),
+                thumbheight = Math.round(thumbRect.height),
+                trackwidth = Math.round(trackRect.width),
+                thumbwidth = Math.round(thumbRect.width);
                 if (thumbheight > trackheight && T.s.orientation === 'x') {
                     // The thumb is taller than the track
                     th.css({
@@ -240,7 +242,8 @@
                 bl = sb.left,
                 bt = sb.top,
                 br = sb.right,
-                lastMove = 'normal';
+                lastMove = 'normal',
+                doround = settings.round;
                 if (settings.isViewport) {
                     // We are moving the thumb inside of the track
                     lastMove = 'viewport';
@@ -257,15 +260,18 @@
                     lastMove = 'resize';
                     var tr = T.thumbRect,
                     r = T.rect,
-                    ar = settings.aspectRatio || tr.width / tr.height;
+                    ar = settings.aspectRatio || tr.width / tr.height,
+                    targetid = T.curTarget.id,
+                    lresize = (targetid === 'sbtLM' || targetid === 'sbtL' || targetid === 'sbtT'),
+                    tresize = (T.curTarget.id === 'sbtTM' || T.curTarget.id === 'sbtT' || T.curTarget.id === 'sbtR');
                     axpos = tr.right - r.left;
                     aypos = tr.bottom - r.top;
-                    if (T.curTarget.id === 'sbtRM' || T.curTarget.id === 'sbtLM') {
+                    if (targetid === 'sbtRM' || targetid === 'sbtLM') {
                         // Lock to left/right resize
                         orientX = !0;
                         orientY = twoD = !1;
                     }
-                    if (T.curTarget.id === 'sbtTM' || T.curTarget.id === 'sbtBM') {
+                    if (targetid === 'sbtTM' || targetid === 'sbtBM') {
                         // Lock to up/down resize
                         orientY = !0;
                         orientX = twoD = !1;
@@ -273,7 +279,7 @@
                     if (orientX || twoD) {
                         var nw = (axpos + xpos) - (tr.left - r.left),
                         xcss = {};
-                        if (T.curTarget.id === 'sbtLM' || T.curTarget.id === 'sbtL' || T.curTarget.id === 'sbtT') {
+                        if (lresize) {
                             // If we're on the left hand side
                             var sx = tr.left - r.left,
                             nl = sx + (nw - tr.width);
@@ -301,7 +307,7 @@
                                 nw = (r.height - (tr.top - r.top)) * ar;
                             }
                         }
-                        xcss.width = nw;
+                        xcss.width = doround ? Math.round(nw) : nw;
                         th.css(xcss);
                     }
                     if (orientY || twoD) {
@@ -310,8 +316,8 @@
                         if (e.shiftKey && twoD) {
                             nh = nw / ar;
                         }
-                        if (T.curTarget.id === 'sbtTM' || T.curTarget.id === 'sbtT' || T.curTarget.id === 'sbtR') {
-                            // If we're on the left hand side
+                        if (tresize) {
+                            // If we're resizing from the top
                             var sy = tr.top - r.top,
                             nt = sy + (nh - tr.height);
                             aypos = ycss.top = nt; 
@@ -332,7 +338,7 @@
                                 nh = settings.minResizeHeight;
                             }
                         }
-                        ycss.height = nh;
+                        ycss.height = doround ? Math.round(nh) : nh;
                         th.css(ycss);
                     }
                 } else {
@@ -347,6 +353,7 @@
                         } else {
                             axpos = xpos;
                         }
+                        xpos = doround ? Math.round(axpos) : axpos;
                         th.css({left: axpos});
                     }
                     if (orientY || twoD) {
@@ -359,6 +366,7 @@
                         } else {
                             aypos = ypos;
                         }
+                        xpos = doround ? Math.round(aypos) : aypos;
                         th.css({top: aypos});
                     }
                 }
@@ -367,7 +375,19 @@
                 isr = T.isresize,
                 r = T.rect,
                 ax = isr ? nr.left - r.left : axpos,
-                ay = isr ? nr.top - r.top : aypos;
+                ay = isr ? nr.top - r.top : aypos,
+                nrw = nr.width,
+                nrh = nr.height,
+                rw = r.width,
+                rh = r.height;
+                if (doround) {
+                    ax = Math.round(ax);
+                    ay = Math.round(ay);
+                    nrw = Math.round(nrw);
+                    nrh = Math.round(nrh);
+                    rw = Math.round(rw);
+                    rh = Math.round(rh);
+                }
                 T.positionData = {
                     bounds: T.s.bounds,
                     jqueryEvent: e,
@@ -375,13 +395,15 @@
                     px: ax / (br - bl),
                     py: ay / (bb - bt),
                     lastMove: lastMove,
-                    thumbRatio: nr.width / nr.height,
-                    trackHeight: r.height,
-                    trackWidth: r.width,
+                    thumbRatio: nrw / nrh,
+                    thumbHeight: nrh,
+                    thumbWidth: nrw,
+                    trackHeight: rh,
+                    trackWidth: rw,
                     x: ax,
-                    x2: ax + nr.width,
+                    x2: ax + nrw,
                     y: ay,
-                    y2: ay + nr.height
+                    y2: ay + nrh
                 };
                 settings.onUpdate.call(T, T.positionData);
             };
@@ -411,11 +433,7 @@
                         T.posLT();
                     }
                     T.isresize = !1;
-                    T.s.onFinish.call(T, {
-                        bounds: T.s.bounds,
-                        jQueryEvent: ev,
-                        originalEvent: ev.originalEvent
-                    });
+                    T.s.onFinish.call(T, T.positionData);
                 });
             });
             cache[T.c] = T;
@@ -471,8 +489,8 @@
         var t = $(e.target),
         off = t.offset();
         return {
-            x: e.pageX - off.left + rect.left,
-            y: e.pageY - off.top + rect.top
+            x: e.pageX - Math.round(off.left) + rect.left,
+            y: e.pageY - Math.round(off.top) + rect.top
         };
     }
 
