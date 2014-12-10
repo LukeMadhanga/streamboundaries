@@ -12,8 +12,9 @@
     methods = {
         init: function(opts) {
             var T = this;
-            if (!T.length) {
-                // There is no object, return
+            if (!T.length || T.data('data-streamboundariesid')) {
+                // There is no object or
+                // We have already been initialised
                 return T;
             }
             if (T.length > 1) {
@@ -26,7 +27,7 @@
             var prop = {},
             ef = function() {};
             T.s = $.extend({
-                aspectRatio: false,
+                aspectRatio: !1,
                 autoRotate: !0,
                 bg: '#DEDEDE',
                 centerThumb: !0,
@@ -34,21 +35,25 @@
                 bounds: !1,
                 height: '5px',
                 isViewport: !1,
+                lockAspectRatio: !1,
                 minResizeHeight: '20px',
                 minResizeWidth: '20px',
+                onBeforeUpdate: ef,
                 onFinish: ef,
                 onUpdate: ef,
                 orientation: 'x',
+                resizable: !1,
+                round: !0,
+                scale9Grid: !1,
+                scaleX: !0,
+                scaleY: !0,
                 thumb: T.find('*:first'),
                 thumbBg: '#333',
                 thumbHeight: '5px',
                 thumbWidth: '10%',
-                resizable: !1,
-                round: !0,
-                scale9Grid: !1,
                 width: '300px',
-                x: false,
-                y: false
+                x: !1,
+                y: !1
             }, opts);
             T.offsetX = 0;
             T.offsetY = 0;
@@ -236,6 +241,11 @@
             T.wmm = function(e) {
                 // Prevent the default dragging behaviour
                 e.preventDefault();
+                var res = T.s.onUpdate.call(T, T.positionData);
+                if (res === false) {
+                    // The caller didn't want us to continue so don't
+                    return;
+                }
                 var xpos = e.clientX - T.offsetX,
                 ypos = e.clientY - T.offsetY,
                 axpos = 0,
@@ -285,7 +295,7 @@
                         orientY = !0;
                         orientX = twoD = !1;
                     }
-                    if (orientX || twoD) {
+                    if ((orientX || twoD) && settings.scaleX) {
                         var nw = (axpos + xpos) - (tr.left - r.left),
                         xcss = {};
                         if (lresize) {
@@ -310,7 +320,7 @@
                                 nw = settings.minResizeWidth;
                             }
                         }
-                        if (e.shiftKey && twoD) {
+                        if (e.shiftKey && twoD || settings.lockAspectRatio) {
                             if (nw / ar + (tr.top - r.top) > r.height) {
                                 // If by doing an aspect ratio scale we become taller than the bounds, reset our width
                                 nw = (r.height - (tr.top - r.top)) * ar;
@@ -319,10 +329,10 @@
                         xcss.width = doround ? Math.round(nw) : nw;
                         th.css(xcss);
                     }
-                    if (orientY || twoD) {
+                    if ((orientY || twoD) && settings.scaleY) {
                         var nh = (aypos + ypos) - (tr.top - r.top),
                         ycss = {};
-                        if (e.shiftKey && twoD) {
+                        if (e.shiftKey && twoD || settings.lockAspectRatio) {
                             nh = nw / ar;
                         }
                         if (tresize) {
@@ -414,12 +424,15 @@
                     y: ay,
                     y2: ay + nrh
                 };
-                settings.onUpdate.call(T, T.positionData);
             };
             T.find('div').mousedown(function(e) {
                 // Prevent the default dragging behaviour
                 if (e.which === 3) {
                     // This was a right click
+                    return;
+                }
+                if (T.s.onBeforeUpdate.call(T, T.positionData) === false) {
+                    // The caller didn't want us to continue
                     return;
                 }
                 e.preventDefault();
@@ -439,7 +452,7 @@
                     T.offsetY = off.y;
                 }
                 w.mousemove(T.wmm);
-                w.one('mouseup', function(ev) {
+                w.one('mouseup', function() {
                     // Only allow the mouseup event to fire once
                     w.unbind('mousemove', T.wmm);
                     if (T.s.isViewport) {
