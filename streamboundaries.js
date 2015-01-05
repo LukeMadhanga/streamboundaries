@@ -49,6 +49,7 @@
                 scaleY: !0,
                 thumb: T.find('*:first'),
                 thumbBg: '#333',
+                thumbBorder: 'solid thin #005400',
                 thumbHeight: '5px',
                 thumbWidth: '10%',
                 width: '300px',
@@ -81,11 +82,11 @@
                 thcss = {
                     width: settings[thumb + (dorotate ? 'Height' : 'Width')],
                     height: settings[thumb + (dorotate ? 'Width' : 'Height')],
-                    background: settings.thumb + 'Bg',
+                    background: settings.thumbBg,
                     position: 'relative',
                     'box-sizing': 'border-box',
                     cursor: 'pointer',
-                    'border': 'solid thin #005400'
+                    border: settings.thumbBorder
                 };
                 if (settings.resizable && !$('.sb_thumbres', T).length) {
                     // Only create the resize thumb if we're allowed to resize, and if we haven't already created one
