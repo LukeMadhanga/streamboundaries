@@ -1,4 +1,4 @@
-(function($, win, count) {
+(function($, window, count) {
 
     /**
      * A string to access objects with a property or method beginning with 'thumb'. This will allow it to be compressed better
@@ -12,7 +12,7 @@
     methods = {
         init: function(opts) {
             var T = this;
-            if (!T.length || T.data('data-streamboundariesid')) {
+            if (!T.length || T.attr('data-streamboundariesid')) {
                 // There is no object or
                 // We have already been initialised
                 return T;
@@ -24,8 +24,7 @@
                 });
                 return T;
             }
-            var prop = {},
-            ef = function() {};
+            var ef = function() {};
             T.s = $.extend({
                 aspectRatio: !1,
                 autoRotate: !0,
@@ -61,8 +60,7 @@
             T.autobounds = !1;
             T.c = ++count;
             T.isresize;
-            prop[sbid] = T.c;
-            T.attr(prop);
+            T.attr({'data-streamboundariesid': T.c});
             
             /**
              * Render the thumb and track according to the parameters that are passed to it
@@ -426,6 +424,7 @@
                     y2: ay + nrh
                 };
             };
+            
             T.find('div').mousedown(function(e) {
                 // Prevent the default dragging behaviour
                 if (e.which === 3) {
@@ -442,7 +441,7 @@
                 T.isresize = $(e.target).hasClass('sb_thumbres');
                 reposition(T.rect, T.thumbRect);
                 T.startDim = {width: T.thumbRect.width, height: T.thumbRect.height};
-                var w = $(win);
+                var w = $(window);
                 if (T.isresize) {
                     T.curTarget = e.target;
                     T.offsetX = e.clientX;
@@ -549,6 +548,24 @@
         } else {
             // The user has passed us something dodgy, throw an error
             $.error(['The method ', methodOrOpts, ' does not exist'].join(''));
+        }
+    };
+    
+    $.streamBoundaries = {
+        /**
+         * Clear the cache of streamboundaries
+         */
+        clearCache: function () {
+            cache = [];
+        },
+        /**
+         * Unset the mouse move function from all instances
+         */
+        unsetMouseMove: function () {
+            for (var x in cache) {
+                var T = cache[x];
+                $(window).unbind('mousemove', T.wmm);
+            }
         }
     };
 
